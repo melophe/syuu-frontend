@@ -19,6 +19,7 @@ export function PracticeSettings({ onStart }: Props) {
   const [selectedLengths, setSelectedLengths] = useState<LengthBucket[]>(['S', 'M']);
   const [questionCount, setQuestionCount] = useState(10);
   const [reviewPriority, setReviewPriority] = useState(false);
+  const [customTopic, setCustomTopic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +49,7 @@ export function PracticeSettings({ onStart }: Props) {
         length_buckets: selectedLengths.length > 0 ? selectedLengths : ['S', 'M', 'L', 'XL'],
         question_count: questionCount,
         review_priority: reviewPriority,
+        custom_topic: customTopic.trim() || undefined,
       });
       onStart(session);
     } catch (err) {
@@ -113,6 +115,22 @@ export function PracticeSettings({ onStart }: Props) {
             />
             <span className="text-sm text-muted-foreground">問</span>
           </div>
+        </div>
+
+        {/* Custom Topic */}
+        <div className="space-y-3">
+          <Label htmlFor="customTopic">カスタムお題（任意）</Label>
+          <Input
+            id="customTopic"
+            type="text"
+            maxLength={100}
+            placeholder="例: AWS、Docker、コードレビュー、締め切り延長の依頼..."
+            value={customTopic}
+            onChange={(e) => setCustomTopic(e.target.value)}
+          />
+          <p className="text-sm text-muted-foreground">
+            入力するとAIがそのお題に関連した問題を生成します
+          </p>
         </div>
 
         {/* Review Priority */}

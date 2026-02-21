@@ -5,6 +5,7 @@ export interface PracticeSettings {
   length_buckets: LengthBucket[];
   question_count: number;
   review_priority: boolean;
+  custom_topic?: string;
 }
 
 export interface PracticeQuestion {
