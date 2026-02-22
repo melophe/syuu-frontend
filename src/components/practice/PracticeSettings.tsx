@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,35 @@ import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { LengthBucket, SessionResponse } from '@/types';
 import { SITUATIONS, LENGTH_BUCKETS } from '@/types';
+
+const STORAGE_KEY = 'syun-eng-settings';
+
+interface SavedSettings {
+  situations: string[];
+  lengths: LengthBucket[];
+  questionCount: number;
+  reviewPriority: boolean;
+  customTopic: string;
+}
+
+function loadSettings(): SavedSettings | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSettings(settings: SavedSettings): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 interface Props {
   onStart: (session: SessionResponse) => void;
@@ -22,6 +51,32 @@ export function PracticeSettings({ onStart }: Props) {
   const [customTopic, setCustomTopic] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load saved settings on mount
+  useEffect(() => {
+    const saved = loadSettings();
+    if (saved) {
+      setSelectedSituations(saved.situations);
+      setSelectedLengths(saved.lengths);
+      setQuestionCount(saved.questionCount);
+      setReviewPriority(saved.reviewPriority);
+      setCustomTopic(saved.customTopic);
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save settings when they change (after initial load)
+  useEffect(() => {
+    if (!isLoaded) return;
+    saveSettings({
+      situations: selectedSituations,
+      lengths: selectedLengths,
+      questionCount,
+      reviewPriority,
+      customTopic,
+    });
+  }, [isLoaded, selectedSituations, selectedLengths, questionCount, reviewPriority, customTopic]);
 
   const toggleSituation = (value: string) => {
     setSelectedSituations(prev =>
