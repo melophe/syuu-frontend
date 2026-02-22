@@ -91,6 +91,13 @@ class ApiClient {
     });
   }
 
+  async getHint(sessionId: string, itemId: string, level: number): Promise<{ hint: string; level: number }> {
+    return this.fetch<{ hint: string; level: number }>(`/api/practice/${sessionId}/hint`, {
+      method: 'POST',
+      body: JSON.stringify({ item_id: itemId, level }),
+    });
+  }
+
   // Stats
   async getStatsSummary(): Promise<StatsSummary> {
     return this.fetch<StatsSummary>('/api/stats/summary');

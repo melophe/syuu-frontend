@@ -26,12 +26,17 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
   const [isLoading, setIsLoading] = useState(false);
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [correctCount, setCorrectCount] = useState(0);
+  const [hint, setHint] = useState<string | null>(null);
+  const [hintLevel, setHintLevel] = useState(0);
+  const [isLoadingHint, setIsLoadingHint] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
     setStartTime(Date.now());
+    setHint(null);
+    setHintLevel(0);
   }, [currentQuestion]);
 
   const handleSubmit = useCallback(async () => {
@@ -93,6 +98,23 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
     }
   };
 
+  const handleHint = useCallback(async () => {
+    if (isLoadingHint || hintLevel >= 3) return;
+
+    setIsLoadingHint(true);
+    const nextLevel = hintLevel + 1;
+
+    try {
+      const response = await api.getHint(sessionId, currentQuestion.item_id, nextLevel);
+      setHint(response.hint);
+      setHintLevel(nextLevel);
+    } catch (error) {
+      console.error('Hint error:', error);
+    } finally {
+      setIsLoadingHint(false);
+    }
+  }, [sessionId, currentQuestion.item_id, hintLevel, isLoadingHint]);
+
   const progress = (currentQuestion.question_number / totalQuestions) * 100;
 
   return (
@@ -120,6 +142,16 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
 
         {phase === 'question' && (
           <>
+            {/* Hint */}
+            {hint && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                  <span className="font-semibold">ヒント{hintLevel}: </span>
+                  {hint}
+                </p>
+              </div>
+            )}
+
             {/* Input */}
             <div className="space-y-2">
               <Input
@@ -136,14 +168,24 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
               </p>
             </div>
 
-            <Button
-              onClick={handleSubmit}
-              disabled={!userInput.trim() || isLoading}
-              className="w-full"
-              size="lg"
-            >
-              {isLoading ? '送信中...' : '回答する'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleHint}
+                disabled={isLoadingHint || hintLevel >= 3}
+                variant="outline"
+                className="flex-1"
+              >
+                {isLoadingHint ? '...' : hintLevel >= 3 ? 'ヒント上限' : `ヒント (${hintLevel}/3)`}
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={!userInput.trim() || isLoading}
+                className="flex-[2]"
+                size="lg"
+              >
+                {isLoading ? '送信中...' : '回答する'}
+              </Button>
+            </div>
           </>
         )}
 
