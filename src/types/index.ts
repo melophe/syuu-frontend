@@ -17,6 +17,14 @@ export interface PracticeQuestion {
   total_questions: number;
 }
 
+export interface CoachFeedback {
+  natural_answer: string;    // ✅ 自然で良い解答
+  alternatives: string[];    // 🔁 言い換え
+  grammar_point: string;     // 🧠 ポイント
+  common_mistake: string;    // 🪵 よくあるミス
+  encouragement: string;     // 励まし
+}
+
 export interface AnswerResult {
   is_correct: boolean;
   user_input: string;
@@ -24,6 +32,7 @@ export interface AnswerResult {
   acceptable: string[];
   matched_with?: string;
   explanation?: string;
+  feedback?: CoachFeedback;  // コーチフィードバック
 }
 
 export interface SessionResponse {

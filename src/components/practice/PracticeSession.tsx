@@ -241,6 +241,68 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
               )}
             </div>
 
+            {/* Coach Feedback */}
+            {answerResult.feedback && (
+              <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 rounded-lg">
+                {/* Natural Answer */}
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                    自然な表現
+                  </p>
+                  <p className="font-mono text-blue-900 dark:text-blue-100">
+                    {answerResult.feedback.natural_answer}
+                  </p>
+                </div>
+
+                {/* Alternatives */}
+                {answerResult.feedback.alternatives.length > 0 && (
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                      言い換え
+                    </p>
+                    {answerResult.feedback.alternatives.map((alt, i) => (
+                      <p key={i} className="font-mono text-sm text-blue-800 dark:text-blue-200">
+                        - {alt}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Grammar Point */}
+                {answerResult.feedback.grammar_point && (
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                      ポイント
+                    </p>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      {answerResult.feedback.grammar_point}
+                    </p>
+                  </div>
+                )}
+
+                {/* Common Mistake */}
+                {answerResult.feedback.common_mistake && (
+                  <div>
+                    <p className="text-sm font-semibold text-orange-800 dark:text-orange-200 mb-1">
+                      よくあるミス
+                    </p>
+                    <p className="text-sm text-orange-800 dark:text-orange-200">
+                      {answerResult.feedback.common_mistake}
+                    </p>
+                  </div>
+                )}
+
+                {/* Encouragement */}
+                {answerResult.feedback.encouragement && (
+                  <div className="pt-2 border-t border-blue-200 dark:border-blue-700">
+                    <p className="text-sm text-blue-700 dark:text-blue-300 italic">
+                      {answerResult.feedback.encouragement}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <Button
               onClick={handleNext}
               disabled={isLoading}
