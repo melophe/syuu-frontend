@@ -18,6 +18,25 @@ interface Props {
 
 type Phase = 'question' | 'result';
 
+function isPracticeQuestion(response: unknown): response is PracticeQuestion {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'item_id' in response &&
+    'japanese' in response &&
+    'question_number' in response
+  );
+}
+
+function isSessionComplete(response: unknown): response is SessionCompleteResponse {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'complete' in response &&
+    (response as SessionCompleteResponse).complete === true
+  );
+}
+
 export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onComplete }: Props) {
   const [currentQuestion, setCurrentQuestion] = useState<PracticeQuestion>(firstQuestion);
   const [phase, setPhase] = useState<Phase>('question');
@@ -29,6 +48,8 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
   const [hint, setHint] = useState<string | null>(null);
   const [hintLevel, setHintLevel] = useState(0);
   const [isLoadingHint, setIsLoadingHint] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const isSubmittingRef = useRef(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -40,9 +61,11 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
   }, [currentQuestion]);
 
   const handleSubmit = useCallback(async () => {
-    if (!userInput.trim() || isLoading) return;
+    if (!userInput.trim() || isLoading || isSubmittingRef.current) return;
 
+    isSubmittingRef.current = true;
     setIsLoading(true);
+    setError(null);
     const responseTimeMs = Date.now() - startTime;
 
     try {
@@ -58,30 +81,40 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
         setCorrectCount(prev => prev + 1);
       }
       setPhase('result');
-    } catch (error) {
-      console.error('Submit error:', error);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '回答の送信に失敗しました';
+      setError(message);
+      console.error('Submit error:', err);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   }, [sessionId, currentQuestion, userInput, startTime, isLoading]);
 
   const handleNext = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
       const response = await api.getNextQuestion(sessionId);
 
-      if ('complete' in response && response.complete) {
-        onComplete(response as SessionCompleteResponse);
+      if (isSessionComplete(response)) {
+        onComplete(response);
         return;
       }
 
-      setCurrentQuestion(response as PracticeQuestion);
-      setUserInput('');
-      setAnswerResult(null);
-      setPhase('question');
-    } catch (error) {
-      console.error('Next question error:', error);
+      if (isPracticeQuestion(response)) {
+        setCurrentQuestion(response);
+        setUserInput('');
+        setAnswerResult(null);
+        setPhase('question');
+      } else {
+        setError('予期しないレスポンス形式です');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '次の問題の取得に失敗しました';
+      setError(message);
+      console.error('Next question error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -139,6 +172,13 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
         <div className="p-4 bg-muted rounded-lg">
           <p className="text-lg font-medium">{currentQuestion.japanese}</p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-300 rounded-lg" role="alert">
+            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          </div>
+        )}
 
         {phase === 'question' && (
           <>
@@ -215,8 +255,8 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
               {/* Model Answers */}
               <div className="mb-3">
                 <p className="text-sm text-muted-foreground mb-1">模範解答:</p>
-                {answerResult.model_answers.map((answer, i) => (
-                  <p key={i} className="font-mono text-green-700 dark:text-green-400">
+                {answerResult.model_answers.map((answer) => (
+                  <p key={`model-${answer}`} className="font-mono text-green-700 dark:text-green-400">
                     {answer}
                     {answerResult.matched_with === answer && (
                       <Badge variant="default" className="ml-2 text-xs">マッチ</Badge>
@@ -229,8 +269,8 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
               {answerResult.acceptable.length > 0 && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">その他の許容表現:</p>
-                  {answerResult.acceptable.map((answer, i) => (
-                    <p key={i} className="font-mono text-muted-foreground text-sm">
+                  {answerResult.acceptable.map((answer) => (
+                    <p key={`acceptable-${answer}`} className="font-mono text-muted-foreground text-sm">
                       {answer}
                       {answerResult.matched_with === answer && (
                         <Badge variant="secondary" className="ml-2 text-xs">マッチ</Badge>
@@ -260,8 +300,8 @@ export function PracticeSession({ sessionId, firstQuestion, totalQuestions, onCo
                     <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
                       言い換え
                     </p>
-                    {answerResult.feedback.alternatives.map((alt, i) => (
-                      <p key={i} className="font-mono text-sm text-blue-800 dark:text-blue-200">
+                    {answerResult.feedback.alternatives.map((alt) => (
+                      <p key={`alt-${alt}`} className="font-mono text-sm text-blue-800 dark:text-blue-200">
                         - {alt}
                       </p>
                     ))}
